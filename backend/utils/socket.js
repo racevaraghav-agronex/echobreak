@@ -11,6 +11,8 @@ const {
 const { assessNearbyVehicles } = require("../services/collisionRiskService");
 const { publishEvent } = require("../services/eventEngine");
 
+const JWT_SECRET = process.env.JWT_SECRET || "echobreak-jwt-development-secret-key-2025";
+
 let ioInstance = null;
 
 function initSocket(io) {
@@ -20,7 +22,7 @@ function initSocket(io) {
     const token = socket.handshake.auth?.token;
     if (!token) return next();
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const decoded = jwt.verify(token, JWT_SECRET);
       socket.data.userId = decoded.id;
     } catch {
       return next(new Error("Invalid socket credentials."));

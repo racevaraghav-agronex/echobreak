@@ -96,6 +96,36 @@ export default function Login({ onAuthSuccess }) {
             </button>
           </form>
 
+          <div className="mt-6 pt-5 border-t border-gray-100">
+            <p className="text-xs text-gray-500 mb-2 font-medium">Quick Demo Accounts:</p>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setIdentifier("user@echobreak.com");
+                  setPassword("user123");
+                  setError("");
+                }}
+                className="px-3 py-2 text-xs font-medium rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 transition text-left cursor-pointer"
+              >
+                <div className="font-semibold">Driver Demo</div>
+                <div className="text-[10px] text-emerald-600 truncate">user@echobreak.com</div>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setIdentifier("admin@echobreak.com");
+                  setPassword("admin123");
+                  setError("");
+                }}
+                className="px-3 py-2 text-xs font-medium rounded-lg bg-slate-50 text-slate-800 border border-slate-200 hover:bg-slate-100 transition text-left cursor-pointer"
+              >
+                <div className="font-semibold">Admin Demo</div>
+                <div className="text-[10px] text-slate-600 truncate">admin@echobreak.com</div>
+              </button>
+            </div>
+          </div>
+
           <p className="text-center text-gray-600 text-sm mt-6">
             Don't have an account?{" "}
             <Link to="/signup" className="text-[#0f382b] font-semibold hover:underline">

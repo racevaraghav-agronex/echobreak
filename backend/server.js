@@ -1,75 +1,59 @@
 require("dotenv").config();
-const express = require("express");
-const mongoose = require("mongoose");
-const cors = require("cors");
+const fs = require("fs");
+const path = require("path");
 const http = require("http");
+const express = require("express");
 const { Server } = require("socket.io");
-const rateLimit = require("express-rate-limit");
-const mongoSanitize = require("express-mongo-sanitize");
-
-const authRoutes = require("./routes/authRoutes");
-const trafficRoutes = require("./routes/trafficRoutes");
-const adminRoutes = require("./routes/adminRoutes");
+const app = require("./app");
+const { connectDB } = require("./config/db");
 const { initSocket } = require("./utils/socket");
 
-const app = express();
+// Serve frontend static assets
+const frontendDist = path.resolve(__dirname, "../frontend/dist");
+app.use(express.static(frontendDist));
+
+// SPA fallback for all non-API GET requests
+app.get("*", (req, res) => {
+  const indexPath = path.join(frontendDist, "index.html");
+  if (fs.existsSync(indexPath)) {
+    return res.sendFile(indexPath);
+  }
+  return res
+    .status(200)
+    .send(
+      "<!doctype html><html><head><meta http-equiv='refresh' content='2'></head><body style='font-family:sans-serif;padding:2rem;'><h2>Loading Echobreak...</h2><p>Please wait while assets initialize.</p></body></html>"
+    );
+});
+
 const server = http.createServer(app);
 
-const CLIENT_ORIGINS = (process.env.CLIENT_ORIGIN || "http://localhost:5173,http://127.0.0.1:5173")
-  .split(",")
-  .map((origin) => origin.trim())
-  .filter(Boolean);
-const corsOptions = { origin: CLIENT_ORIGINS, credentials: true };
-
 const io = new Server(server, {
-  cors: { ...corsOptions, methods: ["GET", "POST"] },
-});
-
-app.use(cors(corsOptions));
-app.use(express.json({ limit: "1mb" }));
-app.use(mongoSanitize());
-
-const apiLimiter = rateLimit({
-  windowMs: 60 * 1000,
-  max: 120,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { message: "Too many requests. Please slow down." },
-});
-app.use("/api/", apiLimiter);
-
-app.get("/api/health", (req, res) => res.json({ status: "ok", service: "echobreak-backend" }));
-
-app.use("/api/auth", authRoutes);
-app.use("/api/traffic", trafficRoutes);
-app.use("/api/admin", adminRoutes);
-
-// Fallback 404 for unknown API routes
-app.use("/api", (req, res) => res.status(404).json({ message: "Endpoint not found." }));
-
-// Generic error handler — never leak stack traces
-app.use((err, req, res, next) => {
-  console.error("Unhandled error:", err.message);
-  res.status(500).json({ message: "Internal server error." });
+  cors: {
+    origin: (origin, callback) => {
+      callback(null, true);
+    },
+    methods: ["GET", "POST"],
+    credentials: true,
+  },
 });
 
 initSocket(io);
 
-const PORT = process.env.PORT || 5000;
-const MONGO_URI = process.env.MONGO_URI;
+const PORT = 3000;
 
-if (!MONGO_URI) {
-  console.error("MONGO_URI is not set. Please configure your .env file.");
-  process.exit(1);
-}
+// Start server immediately so port 3000 is open without delay
+server.listen(PORT, "0.0.0.0", () => {
+  console.log(`Echobreak running on http://0.0.0.0:${PORT}`);
+});
 
-mongoose
-  .connect(MONGO_URI)
+// Connect to MongoDB in parallel
+connectDB()
   .then(() => {
-    console.log("Connected to MongoDB.");
-    server.listen(PORT, () => console.log(`Echobreak backend running on port ${PORT}`));
+    console.log("[EchoBreak] Database initialization verified.");
   })
   .catch((err) => {
-    console.error("MongoDB connection failed:", err.message);
-    process.exit(1);
+    console.error("[EchoBreak] Database connection failed:", err.message);
+    if (process.env.NODE_ENV === "production") {
+      process.exit(1);
+    }
   });

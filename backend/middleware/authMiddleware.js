@@ -1,6 +1,18 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 
+function getJwtSecret() {
+  const secret =
+    process.env.JWT_SECRET ||
+    (process.env.NODE_ENV === "production"
+      ? null
+      : "echobreak-jwt-development-secret-key-2025");
+  if (!secret) {
+    throw new Error("JWT_SECRET environment variable is required.");
+  }
+  return secret;
+}
+
 async function protect(req, res, next) {
   try {
     const header = req.headers.authorization || "";
@@ -10,7 +22,7 @@ async function protect(req, res, next) {
       return res.status(401).json({ message: "Not authorized. No token provided." });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, getJwtSecret());
     const user = await User.findById(decoded.id);
 
     if (!user) {

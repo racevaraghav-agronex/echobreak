@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import api from "../utils/api";
 
 function StatCard({ label, value, accent }) {
   return (
@@ -28,24 +29,18 @@ export default function AdminDashboard({ user, onLogout }) {
 
   const loadData = useCallback(async () => {
     try {
-      const token = localStorage.getItem("echobreak_token");
-      const headers = { "Content-Type": "application/json" };
-      if (token) headers["Authorization"] = `Bearer ${token}`;
-
       let fetchedUsers = [];
       let fetchedStats = { totalUsers: 0, onlineUsers: 0, accidentZonesPrevented: 3, sensorNetworkHealth: 100 };
 
       try {
-        const res = await fetch("http://localhost:5000/api/traffic/users", { headers });
-        const data = await res.json();
+        const { data } = await api.get("/traffic/users");
         if (data && data.users) fetchedUsers = data.users;
       } catch (e) {
         console.log("Users endpoint fallback active");
       }
 
       try {
-        const res = await fetch("http://localhost:5000/api/traffic/stats", { headers });
-        const data = await res.json();
+        const { data } = await api.get("/traffic/stats");
         if (data) fetchedStats = data;
       } catch (e) {
         console.log("Stats endpoint fallback active");

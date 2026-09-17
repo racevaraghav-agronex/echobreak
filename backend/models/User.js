@@ -24,5 +24,21 @@ const UserSchema = new mongoose.Schema(
 
 UserSchema.index({ currentLocation: "2dsphere" });
 
+const MongooseUser = mongoose.model("User", UserSchema);
+const { MemoryUser } = require("./memoryStore");
 
-module.exports = mongoose.model("User", UserSchema);
+const UserProxy = new Proxy(MongooseUser, {
+  get(target, prop) {
+    if (mongoose.connection.readyState === 1) {
+      return target[prop];
+    }
+    // Only permit in-memory fallback in non-production development environments
+    if (process.env.NODE_ENV !== "production" && prop in MemoryUser) {
+      return MemoryUser[prop];
+    }
+    return target[prop];
+  },
+});
+
+module.exports = UserProxy;
+

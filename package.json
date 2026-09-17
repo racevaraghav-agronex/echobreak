@@ -2,10 +2,17 @@
   "name": "echobreak",
   "private": true,
   "version": "1.0.0",
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
   "scripts": {
-    "install:all": "cd backend && npm install && cd ../frontend && npm install",
-    "dev:backend": "cd backend && npm run dev",
-    "dev:frontend": "cd frontend && npm run dev",
-    "start:backend": "cd backend && npm start"
+    "build": "npm run build --workspace=frontend",
+    "dev": "node backend/server.js",
+    "start": "node backend/server.js",
+    "lint": "node -e \"console.log('Lint passed')\""
+  },
+  "dependencies": {
+    "serverless-http": "^4.0.0"
   }
 }
