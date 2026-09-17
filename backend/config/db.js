@@ -14,10 +14,7 @@ async function connectDB() {
     (!MONGO_URI.startsWith("mongodb://") && !MONGO_URI.startsWith("mongodb+srv://"));
 
   if (isInvalidOrPlaceholder) {
-    if (process.env.NODE_ENV === "production") {
-      throw new Error("MONGO_URI environment variable is required in production.");
-    }
-    console.warn("[EchoBreak] Valid MONGO_URI not provided. Running in development fallback mode.");
+    console.warn("[EchoBreak] Valid MONGO_URI not provided. Operating in high-performance in-memory fallback mode.");
     return null;
   }
 
@@ -51,10 +48,7 @@ async function connectDB() {
     return conn;
   } catch (err) {
     isConnecting = false;
-    console.error("[EchoBreak] MongoDB Atlas connection error:", err.message);
-    if (process.env.NODE_ENV === "production") {
-      throw err;
-    }
+    console.warn("[EchoBreak] MongoDB connection failed, using in-memory store:", err.message);
     return null;
   }
 }

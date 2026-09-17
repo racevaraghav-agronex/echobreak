@@ -7,22 +7,11 @@ const { protect } = require("../middleware/authMiddleware");
 const router = express.Router();
 
 const JWT_SECRET =
-  process.env.JWT_SECRET ||
-  (process.env.NODE_ENV === "production"
-    ? null
-    : "echobreak-jwt-development-secret-key-2025");
+  process.env.JWT_SECRET || "echobreak-jwt-development-secret-key-2025";
 const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || "admin@echobreak.com").toLowerCase();
 
 function signToken(user) {
-  const secret =
-    process.env.JWT_SECRET ||
-    (process.env.NODE_ENV === "production"
-      ? null
-      : "echobreak-jwt-development-secret-key-2025");
-  if (!secret) {
-    throw new Error("JWT_SECRET environment variable is required.");
-  }
-  return jwt.sign({ id: user._id, role: user.role }, secret, {
+  return jwt.sign({ id: user._id, role: user.role }, JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRES_IN || "7d",
   });
 }

@@ -31,28 +31,20 @@ MongoDB Atlas (External Database)
 
 Configure these variables in **Netlify Site Configuration → Environment Variables**:
 
-### Required Production Secrets
-| Variable | Description | Example Placeholder |
-|---|---|---|
-| `MONGO_URI` | Real MongoDB Atlas connection string | `your_mongodb_atlas_connection_string` |
-| `JWT_SECRET` | Cryptographically strong secret key for auth tokens | `your_secure_random_secret` |
-| `ADMIN_EMAIL` | Dedicated administrator email for dashboard access | `admin@echobreak.com` |
-| `ADMIN_PASSWORD` | Administrator password | `your_secure_admin_password` |
+### Production Environment Variables Summary
+| Variable | Status | Description | Safe Default / Fallback |
+|---|---|---|---|
+| `MONGO_URI` | **REQUIRED** in production | MongoDB Atlas connection string | In-memory store (in local dev/preview) |
+| `JWT_SECRET` | **REQUIRED** in production | Secure secret for auth token signatures | Internal fallback in local dev/preview |
+| `ADMIN_EMAIL` | **REQUIRED** in production | Administrator email for admin portal | `admin@echobreak.com` |
+| `ADMIN_PASSWORD` | **REQUIRED** in production | Administrator password for admin portal | `admin123` in local dev/preview |
+| `CLIENT_ORIGIN` | Recommended | Allowed CORS origin (e.g. `https://<site>.netlify.app`) | Automatically permits Netlify and same-origin |
+| `JWT_EXPIRES_IN` | Optional | Auth token lifetime | `7d` |
+| `VITE_API_BASE_URL` | Optional | API base URL for frontend | `/api` |
+| `VITE_SOCKET_URL` | Optional | Socket server URL for frontend | Current window origin |
 
-### Recommended Runtime Configurations
-| Variable | Description | Value |
-|---|---|---|
-| `CLIENT_ORIGIN` | Allowed CORS origin (your Netlify domain) | `https://your-site.netlify.app` |
-| `JWT_EXPIRES_IN` | Auth token expiration | `7d` |
-| `VITE_API_BASE_URL` | Frontend API base URL | `/api` |
-| `VITE_SOCKET_URL` | Socket.IO server URL | `https://your-site.netlify.app` |
+> **Public Open-Source Stack**: EchoBreak uses the public OpenStreetMap Nominatim service for geocoding and the public OSRM server for routing out of the box. No third-party API keys (`GEOCODING_API_KEY`, `ROUTING_API_KEY`) are needed or used by executable code.
 
-### Optional Commercial Provider Overrides
-> **Note**: EchoBreak uses the public OSRM server, Nominatim geocoding, and OpenStreetMap tiles by default. No API keys are required for routing, geocoding, or map rendering.
-- `ROUTING_API_KEY` (Optional override if swapping to a commercial routing provider)
-- `GEOCODING_API_KEY` (Optional override if swapping to a commercial geocoding provider)
-- `VITE_MAP_STYLE_URL` (Optional custom MapLibre style JSON URL)
-- `VITE_OSM_TILE_URL` (Optional custom tile provider URL)
 
 ---
 

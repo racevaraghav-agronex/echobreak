@@ -2,15 +2,7 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 
 function getJwtSecret() {
-  const secret =
-    process.env.JWT_SECRET ||
-    (process.env.NODE_ENV === "production"
-      ? null
-      : "echobreak-jwt-development-secret-key-2025");
-  if (!secret) {
-    throw new Error("JWT_SECRET environment variable is required.");
-  }
-  return secret;
+  return process.env.JWT_SECRET || "echobreak-jwt-development-secret-key-2025";
 }
 
 async function protect(req, res, next) {

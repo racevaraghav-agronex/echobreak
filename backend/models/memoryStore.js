@@ -109,24 +109,47 @@ function wrapUserDoc(raw) {
   return clone;
 }
 
+function distanceMeters(coord1, coord2) {
+  if (!coord1 || !coord2) return 0;
+  const [lng1, lat1] = coord1;
+  const [lng2, lat2] = coord2;
+  const dLat = (lat2 - lat1) * (Math.PI / 180);
+  const dLng = (lng2 - lng1) * (Math.PI / 180);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * (Math.PI / 180)) *
+      Math.cos(lat2 * (Math.PI / 180)) *
+      Math.sin(dLng / 2) *
+      Math.sin(dLng / 2);
+  return 6371000 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
 function makeQuery(resolver) {
+  let limitNum = null;
   const queryObj = {
     select() { return queryObj; },
     sort() { return queryObj; },
-    limit() { return queryObj; },
+    limit(n) {
+      limitNum = n;
+      return queryObj;
+    },
     populate() { return queryObj; },
     lean() { return queryObj; },
     async exec() {
-      return await resolver();
+      const res = await resolver();
+      if (Array.isArray(res) && limitNum !== null) {
+        return res.slice(0, limitNum);
+      }
+      return res;
     },
     then(resolve, reject) {
-      return Promise.resolve(resolver()).then(resolve, reject);
+      return Promise.resolve(this.exec()).then(resolve, reject);
     },
     catch(reject) {
-      return Promise.resolve(resolver()).catch(reject);
+      return Promise.resolve(this.exec()).catch(reject);
     },
     finally(fn) {
-      return Promise.resolve(resolver()).finally(fn);
+      return Promise.resolve(this.exec()).finally(fn);
     },
   };
   return queryObj;
@@ -206,6 +229,21 @@ const MemoryUser = {
       if (query.isOnline !== undefined) {
         result = result.filter((u) => u.isOnline === query.isOnline);
       }
+      if (query.currentLocation && query.currentLocation.$near) {
+        const near = query.currentLocation.$near;
+        const center = near.$geometry?.coordinates;
+        const maxDist = near.$maxDistance || 50000;
+        if (center) {
+          result = result
+            .map((u) => ({
+              user: u,
+              dist: distanceMeters(u.currentLocation?.coordinates || [0, 0], center),
+            }))
+            .filter((item) => item.dist <= maxDist)
+            .sort((a, b) => a.dist - b.dist)
+            .map((item) => item.user);
+        }
+      }
       return result.map(wrapUserDoc);
     });
   },
@@ -260,6 +298,21 @@ const MemoryTrafficLog = {
         }
         if (query.source) {
           result = result.filter((l) => l.source === query.source);
+        }
+        if (query.location && query.location.$near) {
+          const near = query.location.$near;
+          const center = near.$geometry?.coordinates;
+          const maxDist = near.$maxDistance || 50000;
+          if (center) {
+            result = result
+              .map((l) => ({
+                log: l,
+                dist: distanceMeters(l.location?.coordinates || [0, 0], center),
+              }))
+              .filter((item) => item.dist <= maxDist)
+              .sort((a, b) => a.dist - b.dist)
+              .map((item) => item.log);
+          }
         }
         if (limitNum !== null) {
           result = result.slice(0, limitNum);

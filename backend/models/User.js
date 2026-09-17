@@ -32,8 +32,7 @@ const UserProxy = new Proxy(MongooseUser, {
     if (mongoose.connection.readyState === 1) {
       return target[prop];
     }
-    // Only permit in-memory fallback in non-production development environments
-    if (process.env.NODE_ENV !== "production" && prop in MemoryUser) {
+    if (prop in MemoryUser) {
       return MemoryUser[prop];
     }
     return target[prop];

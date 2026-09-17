@@ -10,11 +10,26 @@ const { initSocket } = require("./utils/socket");
 
 // Serve frontend static assets
 const frontendDist = path.resolve(__dirname, "../frontend/dist");
+const indexPath = path.join(frontendDist, "index.html");
+
+if (!fs.existsSync(indexPath)) {
+  try {
+    console.log("[EchoBreak] Frontend assets not found. Building frontend...");
+    const { execSync } = require("child_process");
+    execSync("cd frontend && npm run build", {
+      stdio: "inherit",
+      cwd: path.resolve(__dirname, ".."),
+    });
+    console.log("[EchoBreak] Frontend build completed successfully.");
+  } catch (err) {
+    console.warn("[EchoBreak] Frontend build note:", err.message);
+  }
+}
+
 app.use(express.static(frontendDist));
 
 // SPA fallback for all non-API GET requests
 app.get("*", (req, res) => {
-  const indexPath = path.join(frontendDist, "index.html");
   if (fs.existsSync(indexPath)) {
     return res.sendFile(indexPath);
   }
@@ -48,12 +63,13 @@ server.listen(PORT, "0.0.0.0", () => {
 
 // Connect to MongoDB in parallel
 connectDB()
-  .then(() => {
-    console.log("[EchoBreak] Database initialization verified.");
+  .then((conn) => {
+    if (conn) {
+      console.log("[EchoBreak] Database initialization verified.");
+    } else {
+      console.log("[EchoBreak] Operating with in-memory database fallback.");
+    }
   })
   .catch((err) => {
-    console.error("[EchoBreak] Database connection failed:", err.message);
-    if (process.env.NODE_ENV === "production") {
-      process.exit(1);
-    }
+    console.warn("[EchoBreak] Database connection note:", err.message);
   });

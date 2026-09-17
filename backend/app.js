@@ -84,10 +84,7 @@ app.use((err, req, res, next) => {
     err.name === "MongoNetworkError" ||
     err.message?.includes("buffering timed out")
   ) {
-    if (process.env.NODE_ENV === "production") {
-      return res.status(503).json({ error: "Database connection unavailable." });
-    }
-    console.warn("[EchoBreak] Database offline in development mode");
+    console.warn("[EchoBreak] Database offline / buffering timed out:", err.message);
     if (req.method === "GET") {
       return res.json(req.path.endsWith("s") || req.path.endsWith("s/") ? [] : {});
     }

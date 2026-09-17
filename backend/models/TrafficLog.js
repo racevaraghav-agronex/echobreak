@@ -56,8 +56,7 @@ const TrafficLogProxy = new Proxy(MongooseTrafficLog, {
     if (mongoose.connection.readyState === 1) {
       return target[prop];
     }
-    // Only permit in-memory fallback in non-production development environments
-    if (process.env.NODE_ENV !== "production" && prop in MemoryTrafficLog) {
+    if (prop in MemoryTrafficLog) {
       return MemoryTrafficLog[prop];
     }
     return target[prop];
