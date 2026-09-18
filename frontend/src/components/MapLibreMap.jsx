@@ -1,8 +1,13 @@
 import React, { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import * as maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
+import maplibreWorkerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
 import { MAP_CONFIG } from "../config/mapConfig";
 import { reverseGeocodeCoordinates } from "../services/geocodingService";
+
+if (typeof maplibregl.setWorkerUrl === "function") {
+  maplibregl.setWorkerUrl(maplibreWorkerUrl);
+}
 
 const emptyCollection = { type: "FeatureCollection", features: [] };
 const VEHICLE_ICONS = { car: "🚗", bike: "🏍️", transit: "🚆", walking: "🚶", truck: "🚚", bus: "🚌", tempo: "🛻", hcv: "🚛" };

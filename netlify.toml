@@ -6,6 +6,11 @@
 [functions]
   included_files = ["backend/**"]
 
+[[headers]]
+  for = "/assets/*.mjs"
+  [headers.values]
+    Content-Type = "application/javascript; charset=utf-8"
+
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/api/:splat"
