@@ -28,10 +28,10 @@ router.get("/search", protect, async (req, res) => {
       lat: parseFloat(lat),
       lng: parseFloat(lng),
     });
-    res.json({ results });
+    res.json({ results: results || [] });
   } catch (err) {
     console.error("Search error:", err.message);
-    res.status(502).json({
+    res.json({
       message: "Search provider unavailable. Please try again.",
       results: [],
     });
@@ -44,7 +44,13 @@ router.get("/reverse-geocode", protect, async (req, res) => {
     const result = await reverseGeocode(lat, lng);
     res.json(result);
   } catch (err) {
-    res.status(502).json({ message: "Reverse geocoding unavailable." });
+    const latNum = parseFloat(req.query.lat) || 0;
+    const lngNum = parseFloat(req.query.lng) || 0;
+    res.json({
+      address: `Location (${latNum.toFixed(4)}°, ${lngNum.toFixed(4)}°)`,
+      lat: latNum,
+      lng: lngNum,
+    });
   }
 });
 
@@ -71,12 +77,10 @@ router.get("/osm-features", protect, async (req, res) => {
         lng: parseFloat(lng),
       });
     }
-    res.json({ features });
+    res.json({ features: features || [] });
   } catch (err) {
     console.error("OSM feature error:", err.message);
-    res
-      .status(502)
-      .json({ message: "OpenStreetMap features unavailable.", features: [] });
+    res.json({ message: "OpenStreetMap features unavailable.", features: [] });
   }
 });
 
@@ -92,10 +96,10 @@ router.post("/route", protect, async (req, res) => {
         .json({ message: "origin and destination coordinates are required." });
     }
     const routes = await getRoutes({
-      originLat,
-      originLng,
-      destLat,
-      destLng,
+      originLat: parseFloat(originLat),
+      originLng: parseFloat(originLng),
+      destLat: parseFloat(destLat),
+      destLng: parseFloat(destLng),
       vehicleMode,
     });
 
@@ -107,16 +111,21 @@ router.post("/route", protect, async (req, res) => {
           originLng,
           originLat,
         ];
-        const prediction = await predictCongestion({
-          lat: mid[1],
-          lng: mid[0],
-        });
-        const risk = describeRisk(prediction.avgRisk);
+        let prediction;
+        try {
+          prediction = await predictCongestion({
+            lat: mid[1],
+            lng: mid[0],
+          });
+        } catch {
+          prediction = { avgRisk: 25, congestionFactor: 1.0 };
+        }
+        const risk = describeRisk(prediction.avgRisk || 25);
         return {
           ...route,
           echobreakRisk: {
             ...risk,
-            congestionFactor: prediction.congestionFactor,
+            congestionFactor: prediction.congestionFactor || 1.0,
           },
         };
       }),
@@ -126,8 +135,8 @@ router.post("/route", protect, async (req, res) => {
   } catch (err) {
     console.error("Routing error:", err.message);
     res
-      .status(502)
-      .json({ message: err.message || "Routing provider unavailable." });
+      .status(500)
+      .json({ message: "Could not calculate route. Please try again." });
   }
 });
 

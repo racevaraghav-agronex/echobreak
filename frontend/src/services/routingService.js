@@ -14,21 +14,21 @@ export async function fetchRoutes({
     destLng,
     vehicleMode,
   });
-  return data.routes;
+  return data?.routes || [];
 }
 
 export async function searchDestinations(query, origin) {
   const { data } = await api.get("/traffic/search", {
     params: { q: query, lat: origin?.lat, lng: origin?.lng },
   });
-  return data.results;
+  return data?.results || [];
 }
 
 export async function fetchOsmFeatures(origin, radius = 3000, category) {
   const { data } = await api.get("/traffic/osm-features", {
     params: { lat: origin?.lat, lng: origin?.lng, radius, category },
   });
-  return data.features;
+  return data?.features || [];
 }
 
 export async function fetchNearbyCategory(category, origin) {
