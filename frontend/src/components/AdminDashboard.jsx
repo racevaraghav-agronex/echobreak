@@ -66,8 +66,8 @@ export default function AdminDashboard({ user, onLogout }) {
     navigate("/login");
   };
 
- const filteredUsers = users
-    .filter((u) => u.role !== "admin" && u.email !== "scary27444@gmail.com")
+  const filteredUsers = users
+    .filter((u) => u.role !== "admin" && (!user?.email || u.email !== user.email))
     .filter((u) => {
       const q = search.toLowerCase();
       return (

@@ -16,6 +16,7 @@ router.get("/users", async (req, res) => {
       name: u.name,
       phone: u.phone,
       email: u.email,
+      role: u.role || "user",
       vehicleMode: u.vehicleMode,
       isOnline: u.isOnline,
       lastSeen: u.lastSeen,
