@@ -48,20 +48,7 @@ const TrafficLogSchema = new mongoose.Schema(
 TrafficLogSchema.index({ location: "2dsphere" });
 TrafficLogSchema.index({ createdAt: -1 });
 
-const MongooseTrafficLog = mongoose.model("TrafficLog", TrafficLogSchema);
-const { MemoryTrafficLog } = require("./memoryStore");
+module.exports =
+  mongoose.models.TrafficLog || mongoose.model("TrafficLog", TrafficLogSchema);
 
-const TrafficLogProxy = new Proxy(MongooseTrafficLog, {
-  get(target, prop) {
-    if (mongoose.connection.readyState === 1) {
-      return target[prop];
-    }
-    if (prop in MemoryTrafficLog) {
-      return MemoryTrafficLog[prop];
-    }
-    return target[prop];
-  },
-});
-
-module.exports = TrafficLogProxy;
 

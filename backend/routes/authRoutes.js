@@ -4,15 +4,43 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const { protect } = require("../middleware/authMiddleware");
 
+const mongoose = require("mongoose");
 const router = express.Router();
 
-const JWT_SECRET =
-  process.env.JWT_SECRET || "echobreak-jwt-development-secret-key-2025";
-const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || "admin@echobreak.com").toLowerCase();
+async function ensureDbConnected(res) {
+  if (mongoose.connection.readyState !== 1) {
+    try {
+      const { connectDB } = require("../config/db");
+      await connectDB();
+    } catch (err) {
+      res.status(503).json({
+        message: "Database connection unavailable. Please verify your MongoDB configuration.",
+      });
+      return false;
+    }
+  }
+  return true;
+}
+
+function getJwtSecret() {
+  return process.env.JWT_SECRET || "echobreak-jwt-development-secret-key-2025";
+}
+
+function getJwtExpiresIn() {
+  return process.env.JWT_EXPIRES_IN || "7d";
+}
+
+function getAdminEmail() {
+  return (process.env.ADMIN_EMAIL || "admin@echobreak.com").toLowerCase().trim();
+}
+
+function getAdminPassword() {
+  return process.env.ADMIN_PASSWORD;
+}
 
 function signToken(user) {
-  return jwt.sign({ id: user._id, role: user.role }, JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRES_IN || "7d",
+  return jwt.sign({ id: user._id, role: user.role }, getJwtSecret(), {
+    expiresIn: getJwtExpiresIn(),
   });
 }
 
@@ -31,6 +59,9 @@ function sanitizeUser(user) {
 // POST /api/auth/signup
 router.post("/signup", async (req, res) => {
   try {
+    const isReady = await ensureDbConnected(res);
+    if (!isReady) return;
+
     const { name, email, password, phone } = req.body;
 
     if (!name || !email || !password || !phone) {
@@ -56,6 +87,17 @@ router.post("/signup", async (req, res) => {
     res.status(201).json({ token, user: sanitizeUser(user) });
   } catch (err) {
     console.error("Signup error:", err.message);
+    if (
+      err.name === "MongooseError" ||
+      err.name === "MongoNetworkError" ||
+      err.name === "MongoServerSelectionError" ||
+      err.message?.includes("buffering timed out") ||
+      err.message?.includes("connection")
+    ) {
+      return res.status(503).json({
+        message: "Database connection unavailable. Please verify your MongoDB configuration.",
+      });
+    }
     res.status(500).json({ message: "Signup failed. Please try again." });
   }
 });
@@ -63,33 +105,41 @@ router.post("/signup", async (req, res) => {
 // POST /api/auth/login  — identifier can be email OR phone
 router.post("/login", async (req, res) => {
   try {
+    const isReady = await ensureDbConnected(res);
+    if (!isReady) return;
+
     const { identifier, password } = req.body;
     if (!identifier || !password) {
       return res.status(400).json({ message: "Email/phone and password are required." });
     }
 
+    const adminEmail = getAdminEmail();
+    const adminPassword = getAdminPassword();
+
     // Admin login via environment credentials
-    if (identifier.toLowerCase() === ADMIN_EMAIL) {
-      const configuredPassword = process.env.ADMIN_PASSWORD;
+    if (identifier.toLowerCase().trim() === adminEmail) {
       const isMatch =
-        (configuredPassword && password === configuredPassword) ||
+        (adminPassword && password === adminPassword) ||
         (process.env.NODE_ENV !== "production" && password === "admin123") ||
-        (!configuredPassword && password === "admin123");
+        (!adminPassword && password === "admin123");
 
       if (!isMatch) {
         return res.status(401).json({ message: "Incorrect password. Please try again." });
       }
-      let adminUser = await User.findOne({ email: identifier.toLowerCase() });
+      let adminUser = await User.findOne({ email: adminEmail });
       if (!adminUser) {
-        const hashTarget = configuredPassword || "admin123";
+        const hashTarget = adminPassword || "admin123";
         const hashed = await bcrypt.hash(hashTarget, 10);
         adminUser = await User.create({
           name: "Administrator",
-          email: identifier.toLowerCase(),
+          email: adminEmail,
           phone: "0000000000",
           password: hashed,
           role: "admin",
         });
+      } else if (adminUser.role !== "admin") {
+        adminUser.role = "admin";
+        await adminUser.save();
       }
       const token = signToken(adminUser);
       return res.json({ token, user: sanitizeUser(adminUser) });
@@ -116,9 +166,21 @@ router.post("/login", async (req, res) => {
     res.json({ token, user: sanitizeUser(user) });
   } catch (err) {
     console.error("Login error:", err.message);
+    if (
+      err.name === "MongooseError" ||
+      err.name === "MongoNetworkError" ||
+      err.name === "MongoServerSelectionError" ||
+      err.message?.includes("buffering timed out") ||
+      err.message?.includes("connection")
+    ) {
+      return res.status(503).json({
+        message: "Database connection unavailable. Please verify your MongoDB configuration.",
+      });
+    }
     res.status(500).json({ message: "Login failed. Please try again." });
   }
 });
+
 
 // GET /api/auth/me
 router.get("/me", protect, async (req, res) => {

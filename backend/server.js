@@ -66,10 +66,9 @@ connectDB()
   .then((conn) => {
     if (conn) {
       console.log("[EchoBreak] Database initialization verified.");
-    } else {
-      console.log("[EchoBreak] Operating with in-memory database fallback.");
     }
   })
   .catch((err) => {
-    console.warn("[EchoBreak] Database connection note:", err.message);
+    console.warn("[EchoBreak] Database connection warning:", err.message);
   });
+

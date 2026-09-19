@@ -24,20 +24,6 @@ const UserSchema = new mongoose.Schema(
 
 UserSchema.index({ currentLocation: "2dsphere" });
 
-const MongooseUser = mongoose.model("User", UserSchema);
-const { MemoryUser } = require("./memoryStore");
+module.exports = mongoose.models.User || mongoose.model("User", UserSchema);
 
-const UserProxy = new Proxy(MongooseUser, {
-  get(target, prop) {
-    if (mongoose.connection.readyState === 1) {
-      return target[prop];
-    }
-    if (prop in MemoryUser) {
-      return MemoryUser[prop];
-    }
-    return target[prop];
-  },
-});
-
-module.exports = UserProxy;
 

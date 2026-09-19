@@ -82,17 +82,22 @@ app.use((err, req, res, next) => {
   if (
     err.name === "MongooseError" ||
     err.name === "MongoNetworkError" ||
-    err.message?.includes("buffering timed out")
+    err.name === "MongoServerSelectionError" ||
+    err.message?.includes("buffering timed out") ||
+    err.message?.includes("ECONNREFUSED") ||
+    err.message?.includes("database offline")
   ) {
-    console.warn("[EchoBreak] Database offline / buffering timed out:", err.message);
-    if (req.method === "GET") {
-      return res.json(req.path.endsWith("s") || req.path.endsWith("s/") ? [] : {});
-    }
-    return res.status(503).json({ error: "Service temporarily unavailable (database offline)" });
+    console.error("[EchoBreak] Database error:", err.message);
+    return res.status(503).json({
+      status: 503,
+      error: "Service Unavailable",
+      message: "Database connection failed. Please ensure MONGO_URI is configured correctly.",
+    });
   }
 
   console.error("Unhandled error:", err.message);
   res.status(500).json({ message: "Internal server error." });
 });
+
 
 module.exports = app;
